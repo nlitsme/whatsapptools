@@ -5,6 +5,7 @@ import html.parser
 import json
 import os
 import re
+import datetime
 
 """
 download all files for the current web.whatsapp.com site.
@@ -65,18 +66,22 @@ class IndexParser(html.parser.HTMLParser):
     def handle_data(self, data):
         pass
 
-def save(fn, html):
+def save(fn, html, unique=False):
     if type(html) == str:
         html = html.encode('utf-8')
     os.makedirs(os.path.join("web.whatsapp.com", os.path.dirname(fn)), exist_ok=True)
 
+    if unique:
+        root, ext = os.path.splitext(fn)
+        now = datetime.datetime.now()
+        fn = f"{root}-{now:%Y%m%d-%H%M%S}{ext}"
     print("saving %d bytes to %s" % (len(html), fn))
     with open(os.path.join("web.whatsapp.com", fn.lstrip('/')), "wb") as fh:
         fh.write(html)
 
 def main():
     indexhtml = httpget("https://web.whatsapp.com/")
-    save("index.html", indexhtml)
+    save("index.html", indexhtml, unique=True)
 
     w = []
     parser = IndexParser(w)
@@ -96,12 +101,12 @@ def main():
             appversion = m[1]
         elif m := re.match(r'runtime-[0-9a-f]{20}\.js', f):
             runtimejs = content
-        elif m := re.match(r'vendor1-bootstrap_qr-[0-9a-f]{20}\.js', f):
+        elif m := re.match(r'vendor1~bootstrap_qr\.[0-9a-f]{20}\.js', f):
             vendorbootstrapqrjs = content
-        elif m := re.match(r'bootstrap_qr-[0-9a-f]{20}\.js', f):
+        elif m := re.match(r'(?:bootstrap_qr|app)\.[0-9a-f]{20}\.js', f):
             bootstrapqrjs = content
     svcworkerjs = httpget("https://web.whatsapp.com/serviceworker.js")
-    save("serviceworker.js", svcworkerjs)
+    save("serviceworker.js", svcworkerjs, unique=True)
     # -> version: "...", hashedResources: [...], unhashedResources: [...], l10n: { locales: { ... } }, releaseDate: \d+
     assetsjson = jsonget(f"https://web.whatsapp.com/assets-manifest-{appversion}.json")
     save(f"assets-manifest-{appversion}.json", json.dumps(assetsjson))
