@@ -52,7 +52,7 @@ Download most recent web.whatsapp.com files.
 scan-assets.sh and dn-assets.sh
 ==============
 
-Scripts used to populate the web.whatsapp.com directory in the wacode repository.
+Scripts used to populate the web.whatsapp.com directory in the [wacode](https://github.com/nlitsme/whatsapp-web-code-history) repository.
 
 version-structure.py
 ====================
@@ -62,7 +62,7 @@ print out a diagram showing how whatsapp version numbers are organised.
 makeapplinks.py
 ===============
 
-Used to create the symlinks in the wacode repository.
+Used to create the symlinks in the [wacode](https://github.com/nlitsme/whatsapp-web-code-history) repository.
 
 
 waproxy.py
