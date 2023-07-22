@@ -305,7 +305,6 @@ class WhatsappContact:
 class WhatsappDatabase:
     """
     adb:/data/data/com.whatsapp/databases
-    /Users/itsme/myprj/whatsapp/db20190730-184709
     """
     def __init__(self, dbroot):
         if dbroot.startswith("adb:"):
@@ -385,7 +384,7 @@ class WhatsappDatabase:
 
 
     --- media_mime_type, media_wa_type:
-    sqlite3  db20190729-173244/msgstore.db "select media_wa_type , media_mime_type from messages"
+    sqlite3  msgstore.db "select media_wa_type , media_mime_type from messages"
     0|                         -- message
     1|                        
     1|image/jpeg               -- image
