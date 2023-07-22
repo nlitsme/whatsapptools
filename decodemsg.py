@@ -1,10 +1,77 @@
 from binascii import a2b_hex, b2a_hex
 import re
 import sys
-sys.path += [ '/home/itsme/prj/pixel' ]
-from protobuf import DataReader
 
 # manually decode a whatsapp protocol message
+
+class BaseReader:
+    def readstr(self, n):
+        return self.read(n).decode('utf-8')
+    def read16le(self):
+        return struct.unpack("<H", self.read(2))[0]
+    def read24le(self):
+        l, h = struct.unpack("<HB", self.read(2))
+        return h*65536 + l
+    def read32le(self):
+        return struct.unpack("<L", self.read(4))[0]
+    def read64le(self):
+        return struct.unpack("<Q", self.read(8))[0]
+
+    def read16be(self):
+        return struct.unpack(">H", self.read(2))[0]
+    def read24be(self):
+        h, l = struct.unpack(">BH", self.read(3))
+        return h*65536 + l
+    def read32be(self):
+        return struct.unpack(">L", self.read(4))[0]
+    def read64be(self):
+        return struct.unpack(">Q", self.read(8))[0]
+
+
+class FileReader(BaseReader):
+    def __init__(self, fh):
+        self.fh = fh
+        self._eof = False
+
+    def eof(self): # note: can't check for this!!
+        return self._eof
+
+    def read(self, n):
+        data = self.fh.read(n)
+        if n and not data:
+            self._eof = True
+            raise EOFError()
+        return data
+
+    def readbyte(self):
+        return struct.unpack(">B", self.read(1))[0]
+
+
+class DataReader(BaseReader):
+    def __init__(self, data):
+        self.data = data
+        self.pos = 0
+
+    def eof(self):
+        return self.pos == len(self.data)
+
+    def have(self, n):
+        return self.pos + n <= len(self.data)
+
+    def readbyte(self):
+        if self.pos >= len(self.data):
+            raise EOFError()
+        self.pos += 1
+        return self.data[self.pos-1]
+
+    def read(self, n):
+        if self.pos+n > len(self.data):
+            raise EOFError()
+        self.pos += n
+        return self.data[self.pos-n:self.pos]
+
+
+
 
 def unhex(x): return a2b_hex(re.sub(r'\W+','', x))
 def tohex(x): return b2a_hex(x).decode()
@@ -1617,13 +1684,26 @@ def decode(data):
 #   nodes are encoded like this:
 #   tag, attrs:(key, value...), content[optional]
 
+def prepare(data):
+    if data.startswith(b"\x00"):
+        # strip leading NUL
+        return data[1:]
+    if data.startswith(b"\x78\x9c"):
+        import zlib
+        return zlib.decompress(data)
+    if data.startswith(b"\x02\x78\x9c"):
+        data = data[1:]
+        import zlib
+        return zlib.decompress(data)
+    return data
+
 def main():
     import sys
     for line in sys.stdin:
-        if m := re.match(r'^(\W+)(\w.*)', line):
-            print(m[1], decode(unhex(m[2])))
-        elif m := re.match(r'^([0-9a-f ]+)\s*$', line):
-            print("=", decode(unhex(m[1])))
+        if m := re.match(r'^(\W+)([0-9a-f]+)', line):
+            print(m[1], decode(prepare(unhex(m[2]))))
+        elif m := re.match(r'^([0-9a-f]+)', line):
+            print("=", decode(prepare(unhex(m[1]))))
         else:
             print("?", line.rstrip("\n"))
 if __name__=='__main__':
