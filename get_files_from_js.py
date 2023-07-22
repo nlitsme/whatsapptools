@@ -31,6 +31,7 @@ bootstrap_main, bootstrap_qr
     new Worker(\S+ + "...")
     {dir:"LTR",children:"2.2232.7"}
     appVersion:"2.2222.8"
+    wa:uploadLogs version: ${"2.2222.8"}
 
 app.XXX.js
     VERSION_BASE:"2.2027.10"
@@ -113,11 +114,9 @@ def decode_svc(js):
 
         return info
 
-def getworkers(jstext):
+def getbootstrapworkers(jstext):
     """
-    get workers info from bootstrap_qr and bootstrap_main
-
-    TODO: appVersion
+    get workers info from bootstrap_qr/app and bootstrap_main
     """
     return re.findall(r'new Worker\(\s*\S+?\s*\+\s*"(\S+?)\"\s*\)', jstext)
 
@@ -144,6 +143,8 @@ def getversion(jstext):
     if m := re.search(r'parseUASimple\(\s*\w+,\s*"(\d\.\d\S*?)"', jstext):
         return m[1]
     if m := re.search(r'\bversion"?:\s*"(\d\.\d\S*?)"', jstext):
+        return m[1]
+    if m := re.search(r'\buploadLogs version:\W+"(\d\.\d\S*?)"', jstext):
         return m[1]
 
 def decompress(data):
@@ -181,6 +182,8 @@ def main():
             try:
                 if fn.endswith('.http'):
                     continue
+                if fn.endswith(".css"):
+                    continue
                 with open(fn, "rb") as fh:
                     data = fh.read()
                 if data.startswith(b"\x1f\x8b"):
@@ -193,9 +196,9 @@ def main():
                     continue
 
                 ver = getversion(txt)
-                if fn.find('bootstrap')>=0:
+                if fn.find('bootstrap')>=0 or fn.startswith('app') or fn.startswith('main'):
                     print("--- [%s] %s" % (ver, fn))
-                    files = getworkers(txt)
+                    files = getbootstrapworkers(txt)
                     if files:
                         print("\t" + "\n\t".join(files))
                     else:
