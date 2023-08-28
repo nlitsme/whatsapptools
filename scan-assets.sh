@@ -1,4 +1,5 @@
 # discovering manifest files by enumerating all version nrs, 
+cd wacode
 for ((a=2300 ; a<2400 ; a++)); do
     for ((b=0 ; b<25 ; b++)); do
         f="web.whatsapp.com/assets-manifest-2.$a.$b.json"
