@@ -111,7 +111,7 @@ class WhatsappProxy:
 
                 # retrieve from local storage
                 print("local file", path)
-                return web.FileResponse(os.path.join(self.basepath, path))
+                return web.FileResponse(localpath)
 
             print("remote file", path)
             # retrieve from whatsapp
