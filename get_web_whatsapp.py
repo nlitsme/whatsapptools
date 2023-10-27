@@ -66,22 +66,28 @@ class IndexParser(html.parser.HTMLParser):
     def handle_data(self, data):
         pass
 
-def save(fn, html, unique=False):
+def save(args, fn, html, unique=False):
     if type(html) == str:
         html = html.encode('utf-8')
-    os.makedirs(os.path.join("web.whatsapp.com", os.path.dirname(fn)), exist_ok=True)
+    os.makedirs(os.path.join(args.basepath, "web.whatsapp.com", os.path.dirname(fn)), exist_ok=True)
 
     if unique:
         root, ext = os.path.splitext(fn)
         now = datetime.datetime.now()
         fn = f"{root}-{now:%Y%m%d-%H%M%S}{ext}"
     print("saving %d bytes to %s" % (len(html), fn))
-    with open(os.path.join("web.whatsapp.com", fn.lstrip('/')), "wb") as fh:
+    with open(os.path.join(args.basepath, "web.whatsapp.com", fn.lstrip('/')), "wb") as fh:
         fh.write(html)
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='get updates to the web.whatsapp.')
+    parser.add_argument('basepath', type=str, help="where to store the whatsapp files", default='.')
+    args = parser.parse_args()
+
+
     indexhtml = httpget("https://web.whatsapp.com/")
-    save("index.html", indexhtml, unique=True)
+    save(args, "index.html", indexhtml, unique=True)
 
     w = []
     parser = IndexParser(w)
@@ -96,7 +102,7 @@ def main():
     bootstrapqrjs = None
     for f in parser.files:
         content = httpget("https://web.whatsapp.com/" + f)
-        save(f, content)
+        save(args, f, content)
         if m := re.match(r'binary-transparency-manifest-(\S+)\.json', f):
             appversion = m[1]
         elif m := re.match(r'runtime-[0-9a-f]{20}\.js', f):
@@ -106,13 +112,13 @@ def main():
         elif m := re.match(r'(?:bootstrap_qr|app)\.[0-9a-f]{20}\.js', f):
             bootstrapqrjs = content
     svcworkerjs = httpget("https://web.whatsapp.com/serviceworker.js")
-    save("serviceworker.js", svcworkerjs, unique=True)
+    save(args, "serviceworker.js", svcworkerjs, unique=True)
     # -> version: "...", hashedResources: [...], unhashedResources: [...], l10n: { locales: { ... } }, releaseDate: \d+
     assetsjson = jsonget(f"https://web.whatsapp.com/assets-manifest-{appversion}.json")
-    save(f"assets-manifest-{appversion}.json", json.dumps(assetsjson))
+    save(args, f"assets-manifest-{appversion}.json", json.dumps(assetsjson))
     for k, v in assetsjson.items():
         content = httpget("https://web.whatsapp.com/" + k)
-        save(k, content)
+        save(args, k, content)
 
     # runtime.js
     # e => (({ \d+:"\S+", ... }[e] || e) + "." + { \d+:"[0-9a-f]{20}", ... }[e] + "\.js")
@@ -124,7 +130,11 @@ def main():
 
     for p in ("darwin-store", "win32-store", "darwin", "win32", "web", "win32-beta", "darwin-beta"):
         j = jsonget(f"https://web.whatsapp.com/check-update?version=1.0&platform={p}")
-        save(f"check-update?version=1.0&platform={p}", json.dumps(j))
+        save(args, f"check-update?version=1.0&platform={p}", json.dumps(j))
+
+    print()
+    print("now run bash scan-assets.sh")
+    print("then run bash dn-assets.sh")
 
 if __name__ == '__main__':
     main()
