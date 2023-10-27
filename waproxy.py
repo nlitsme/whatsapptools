@@ -76,6 +76,13 @@ class WhatsappProxy:
                 print("Starting request", params)
             async def on_request_end(session, trace_config_ctx, params):
                 print("Ending request", params)
+            async def on_request_exception(session, trace_config_ctx, params):
+                print("Exception request", params)
+            async def on_request_redirect(session, trace_config_ctx, params):
+                print("Redirect request", params)
+            async def on_request_headers_sent(session, trace_config_ctx, params):
+                print("Headers request", params)
+
             async def on_response_chunk_received(session, trace_config_ctx, params):
                 print("rx chunk", params)
             async def on_request_chunk_sent(session, trace_config_ctx, params):
@@ -86,7 +93,9 @@ class WhatsappProxy:
             trace_config.on_request_end.append(on_request_end)
             trace_config.on_response_chunk_received.append(on_response_chunk_received)
             trace_config.on_request_chunk_sent.append(on_request_chunk_sent)
-
+            trace_config.on_request_redirect.append(on_request_redirect)
+            trace_config.on_request_headers_sent.append(on_request_headers_sent)
+            trace_config.on_request_exception.append(on_request_exception)
             moreargs["trace_configs"] = [trace_config]
 
         loop = asyncio.get_running_loop()
